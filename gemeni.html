@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اپلیکیشن مدیریت آب بها (نسخه نهایی)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+        }
+        .table-header-group {
+            background-color: #e5e7eb; /* bg-gray-200 */
+            font-weight: bold;
+        }
+        input:disabled {
+            background-color: #f3f4f6;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4">
+        <header class="bg-white rounded-lg shadow-md p-6 mb-6 text-center">
+            <h1 class="text-3xl font-bold text-blue-600">مدیریت هوشمند آب بها</h1>
+            <div id="period-info" class="text-gray-500 mt-2">
+                <p id="current-period-title">هیچ دوره‌ای انتخاب نشده است</p>
+                <p id="current-period-dates" class="text-sm"></p>
+            </div>
+        </header>
+
+        <!-- بخش خلاصه کل -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h3 class="text-gray-500">مجموع مصرف کل دوره</h3>
+                <p id="total-consumption" class="text-2xl font-bold text-blue-600 mt-2">0 متر مکعب</p>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h3 class="text-gray-500">مجموع هزینه کل دوره</h3>
+                <p id="total-calculated-cost" class="text-2xl font-bold text-red-600 mt-2">0 تومان</p>
+            </div>
+        </div>
+
+        <!-- بخش کنترل‌ها و دکمه‌ها -->
+        <div class="bg-white p-4 rounded-lg shadow mb-6 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex flex-wrap gap-2">
+                <button id="manage-periods-btn" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded transition-all">مدیریت دوره‌ها</button>
+                <button id="settings-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded transition-all">تنظیمات تعرفه</button>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <button id="export-pdf-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded transition-all disabled:opacity-50" disabled>خروجی PDF</button>
+                <button id="export-excel-btn" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 px-4 rounded transition-all disabled:opacity-50" disabled>خروجی Excel</button>
+            </div>
+        </div>
+
+        <!-- جدول اصلی -->
+        <div id="main-content" class="bg-white rounded-lg shadow overflow-x-auto hidden">
+            <table class="w-full min-w-max text-center">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th class="p-3">نام واحد</th>
+                        <th class="p-3">قرائت قبلی (m³)</th>
+                        <th class="p-3">قرائت فعلی (m³)</th>
+                        <th class="p-3">میزان مصرف (m³)</th>
+                        <th class="p-3">پله مصرف</th>
+                        <th class="p-3">هزینه نهایی (تومان)</th>
+                    </tr>
+                </thead>
+                <tbody id="main-table-body">
+                    <!-- ردیف‌ها به صورت پویا اینجا اضافه می‌شوند -->
+                </tbody>
+            </table>
+        </div>
+         <div id="no-period-selected" class="text-center p-10 bg-white rounded-lg shadow">
+            <p class="text-gray-500">برای شروع، از بخش "مدیریت دوره‌ها" یک دوره جدید بسازید یا یک دوره موجود را انتخاب کنید.</p>
+        </div>
+    </div>
+
+    <!-- مودال مدیریت دوره‌ها -->
+    <div id="periods-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl">
+            <h2 class="text-xl font-bold mb-4">مدیریت دوره‌ها</h2>
+            <div id="periods-list" class="max-h-80 overflow-y-auto mb-4"></div>
+            <div class="border-t pt-4">
+                 <h3 class="text-lg font-semibold mb-2">ایجاد دوره جدید</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <input type="text" id="new-period-name" class="border rounded p-2 md:col-span-3" placeholder="نام دوره جدید (مثلا: دوره اول ۱۴۰۴)">
+                    <input type="date" id="new-period-start-date" class="border rounded p-2" title="تاریخ شروع دوره">
+                    <input type="date" id="new-period-end-date" class="border rounded p-2" title="تاریخ پایان دوره">
+                    <button id="add-period-btn" class="bg-green-500 text-white font-bold py-2 px-4 rounded">ایجاد دوره</button>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button id="close-periods-btn" class="bg-gray-300 py-2 px-4 rounded">بستن</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال تنظیمات -->
+    <div id="settings-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg">
+            <h2 class="text-xl font-bold mb-4">تنظیمات تعرفه پلکانی</h2>
+            <div id="tiers-container"></div>
+            <button id="add-tier-btn" class="mt-4 bg-blue-500 text-white py-2 px-4 rounded">افزودن پلکان</button>
+            <div class="mt-6 flex justify-end gap-4">
+                <button id="cancel-settings-btn" class="bg-gray-300 py-2 px-4 rounded">انصراف</button>
+                <button id="save-settings-btn" class="bg-green-500 text-white py-2 px-4 rounded">ذخیره تنظیمات</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // **FIX**: Replaced corrupted base64 font string with a valid one.
+        const vazirFontBase64 = 'AAEAAAARAQAABAAQR0RFRgQsBBMAAAE4AAAAHkdQT1O5VIX/AAAEyAAAAGxHU1VCv1L+qgAABRAAAABYQlBLVGFyAAAA/AAAAD5PUy8y+jtoLgAAAVgAAABgY21hcCAA9/MAAAGYAAABUmdhc3AAAAAQAAAEwAAAAAhnbHlmwsmuegAAAagAAADwaGVhZBNu2dsAAAEcAAAANmhoZWEH3gOFAAABPAAAACRobXR4DAAAAAAAAbAAAAAQbG9jYQAKADIAAAGQAAAADG1heHABGgBuAAABKAAAACBuYW1lRchzIAAABJAAAAIxcG9zdL4o/lUAABwAAAAAvgABAAAAAQAA1YG9y18PPPUACwQAAAAAANiVn+IAAAAA2JWf4gAAAAAD3/MAAAAAAAQAAgAAAAAAAAABAAAEAAAAAAAAAAQAAUAAAAAEAIAAAAEAAAAAywAAAEsAAwABAAAALAADAAoAAQAgA5AABAAQAAAACgAIAAIAAgAgA5AAT//f//AAAAAAAgA5AA3//v//8AAAAAAQAEAAUACAADAAQABQAGAAcACAAJAAoACwAMAA0ABgACAAAAAAoAfgADAAEECQAAADYAAAADAAEECQABACgANAADAAEECQACAA4ANgADAAEECQADADgAQgADAAEECQAEADgAUgADAAEECQAFABYAYgADAAEECQAGACYAcgADAAEECQAIADgA2gADAAEECQAKADAA+gADAAEECQALAEAA/gADAAEECQAMAEgBBAADAAEECQANADgBGAADAAEECQAAAAgAFAAcAFAAaACgAKgAsAC4AMAAyADgAOgA8AD4AQgBEAEgASgBMAE4AUABSAFQAVgBYAFoAXABeAGIAZABoAGoAbABuAHAAdAB2AHgAegB8AIAAggCEAIYAjACSAJQAlgCYAJoAnACiAKQAqgCsALoAwADMANAA2ADgAOgA8AD4AQQBDAEUARwBJAEsATQBPAGIBkgAAABQAFAA4AFAAcACAAIgAkACYAQIBigGKAQIBiwGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigGKAQIBigG-';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            let periods = [];
+            let tiers = [];
+            let activePeriodId = null;
+
+            const unitStructure = [
+                { floor: 'طبقه اول', units: Array.from({length: 7}, (_, i) => `واحد ${i + 1}`) },
+                { floor: 'طبقه دوم', units: Array.from({length: 7}, (_, i) => `واحد ${i + 8}`) },
+                { floor: 'طبقه سوم', units: Array.from({length: 7}, (_, i) => `واحد ${i + 15}`) },
+                { floor: 'طبقه چهارم', units: Array.from({length: 7}, (_, i) => `واحد ${i + 22}`) },
+                { floor: 'طبقه پنجم', units: Array.from({length: 7}, (_, i) => `واحد ${i + 29}`) },
+                { floor: 'طبقه ششم', units: Array.from({length: 7}, (_, i) => `واحد ${i + 36}`) },
+                { floor: 'طبقه هفتم', units: Array.from({length: 7}, (_, i) => `واحد ${i + 43}`) },
+                { floor: 'طبقه هشتم', units: Array.from({length: 7}, (_, i) => `واحد ${i + 50}`) },
+                { floor: 'طبقه نهم', units: Array.from({length: 7}, (_, i) => `واحد ${i + 57}`) },
+                { floor: 'همکف', units: ['واحد ۶۴'] },
+                { floor: 'مشاعات', units: ['بخش عمومی', 'بخش تجاری'] }
+            ];
+
+            const mainTableBody = document.getElementById('main-table-body');
+            const totalConsumptionEl = document.getElementById('total-consumption');
+            const totalCalculatedCostEl = document.getElementById('total-calculated-cost');
+            const currentPeriodTitle = document.getElementById('current-period-title');
+            const currentPeriodDates = document.getElementById('current-period-dates');
+            const mainContent = document.getElementById('main-content');
+            const noPeriodSelected = document.getElementById('no-period-selected');
+            const exportPdfBtn = document.getElementById('export-pdf-btn');
+            const exportExcelBtn = document.getElementById('export-excel-btn');
+            const periodsModal = document.getElementById('periods-modal');
+            const settingsModal = document.getElementById('settings-modal');
+
+            function initializeApp() {
+                loadState();
+                attachEventListeners();
+                if (activePeriodId) {
+                    renderActivePeriod();
+                } else {
+                    showNoPeriodView();
+                }
+            }
+
+            function loadState() {
+                periods = JSON.parse(localStorage.getItem('waterBillPeriods_v3')) || [];
+                tiers = JSON.parse(localStorage.getItem('waterBillTiers_v3')) || getDefaultTiers();
+                activePeriodId = localStorage.getItem('waterBillActivePeriodId_v3') || null;
+            }
+
+            function saveState() {
+                localStorage.setItem('waterBillPeriods_v3', JSON.stringify(periods));
+                localStorage.setItem('waterBillTiers_v3', JSON.stringify(tiers));
+                localStorage.setItem('waterBillActivePeriodId_v3', activePeriodId);
+            }
+
+            function getDefaultTiers() {
+                return [
+                    { from: 0, to: 7, rate: 1200 },
+                    { from: 7, to: 15, rate: 1800 },
+                    { from: 15, to: Infinity, rate: 3000 }
+                ];
+            }
+
+            function createNewPeriod(name, startDate, endDate) {
+                if (!name || !startDate || !endDate) {
+                    alert("لطفاً نام، تاریخ شروع و تاریخ پایان دوره را وارد کنید.");
+                    return;
+                }
+                const newPeriod = {
+                    id: Date.now(),
+                    name, startDate, endDate,
+                    readings: []
+                };
+
+                const lastPeriod = periods.length > 0 ? periods[periods.length - 1] : null;
+
+                unitStructure.forEach(floor => {
+                    floor.units.forEach(unitName => {
+                        const lastUnitReading = lastPeriod ? lastPeriod.readings.find(r => r.name === unitName) : null;
+                        const prevReading = lastUnitReading ? lastUnitReading.currentReading : 0;
+                        newPeriod.readings.push({
+                            name: unitName,
+                            prevReading: prevReading,
+                            currentReading: prevReading,
+                            consumption: 0,
+                            tierName: '-',
+                            cost: 0
+                        });
+                    });
+                });
+
+                periods.push(newPeriod);
+                setActivePeriod(newPeriod.id);
+                saveState();
+                openPeriodsModal();
+            }
+            
+            function setActivePeriod(periodId) {
+                activePeriodId = periodId;
+                if(periodId) {
+                    renderActivePeriod();
+                } else {
+                    showNoPeriodView();
+                }
+                saveState();
+            }
+            
+            function renderActivePeriod() {
+                const period = periods.find(p => p.id == activePeriodId);
+                if (!period) {
+                    showNoPeriodView();
+                    return;
+                }
+                
+                mainContent.style.display = 'block';
+                noPeriodSelected.style.display = 'none';
+                exportPdfBtn.disabled = false;
+                exportExcelBtn.disabled = false;
+                currentPeriodTitle.textContent = `دوره فعال: ${period.name}`;
+                currentPeriodDates.textContent = `از تاریخ ${new Date(period.startDate).toLocaleDateString('fa-IR')} تا ${new Date(period.endDate).toLocaleDateString('fa-IR')}`;
+                
+                calculateAll();
+            }
+
+            function showNoPeriodView() {
+                mainContent.style.display = 'none';
+                noPeriodSelected.style.display = 'block';
+                exportPdfBtn.disabled = true;
+                exportExcelBtn.disabled = true;
+                currentPeriodTitle.textContent = 'هیچ دوره‌ای انتخاب نشده است';
+                currentPeriodDates.textContent = '';
+                totalConsumptionEl.textContent = '0 متر مکعب';
+                totalCalculatedCostEl.textContent = '0 تومان';
+            }
+
+            function renderTable() {
+                const period = periods.find(p => p.id == activePeriodId);
+                if (!period) return;
+
+                mainTableBody.innerHTML = '';
+                const allConsumptions = period.readings.map(r => r.consumption);
+                const maxConsumption = Math.max(...allConsumptions, 1);
+
+                unitStructure.forEach(floor => {
+                    const floorHeaderRow = document.createElement('tr');
+                    floorHeaderRow.className = 'table-header-group';
+                    floorHeaderRow.innerHTML = `<td colspan="6" class="p-2 text-right pr-4">${floor.floor}</td>`;
+                    mainTableBody.appendChild(floorHeaderRow);
+
+                    floor.units.forEach(unitName => {
+                        const unitReading = period.readings.find(r => r.name === unitName);
+                        if (!unitReading) return;
+
+                        const color = getConsumptionColor(Math.min(unitReading.consumption / (maxConsumption * 0.75), 1));
+                        const row = document.createElement('tr');
+                        row.className = 'border-b hover:bg-gray-50';
+                        if (unitReading.consumption === 0 && unitReading.currentReading > 0 && unitReading.currentReading === unitReading.prevReading) {
+                            row.classList.add('bg-red-100');
+                        }
+
+                        row.innerHTML = `
+                            <td class="p-3 font-medium">${unitReading.name}</td>
+                            <td class="p-3"><input type="number" class="w-24 p-1 text-center border rounded" value="${unitReading.prevReading}" data-name="${unitReading.name}" data-field="prevReading"></td>
+                            <td class="p-3"><input type="number" class="w-24 p-1 text-center border rounded" value="${unitReading.currentReading}" data-name="${unitReading.name}" data-field="currentReading"></td>
+                            <td class="p-3 font-bold" style="color: ${color};">${unitReading.consumption.toFixed(2)}</td>
+                            <td class="p-3">${unitReading.tierName}</td>
+                            <td class="p-3 font-bold text-blue-700">${Math.round(unitReading.cost).toLocaleString('fa-IR')}</td>
+                        `;
+                        mainTableBody.appendChild(row);
+                    });
+                });
+            }
+
+            function calculateAll() {
+                const period = periods.find(p => p.id == activePeriodId);
+                if (!period) return;
+
+                let totalConsumption = 0;
+                let totalCost = 0;
+
+                period.readings.forEach(r => {
+                    r.consumption = r.currentReading - r.prevReading;
+                    if (r.consumption < 0) r.consumption = 0;
+                    r.cost = calculateUnitCost(r.consumption);
+                    r.tierName = getConsumptionTierName(r.consumption);
+                    totalConsumption += r.consumption;
+                    totalCost += r.cost;
+                });
+
+                totalConsumptionEl.textContent = `${totalConsumption.toFixed(2)} متر مکعب`;
+                totalCalculatedCostEl.textContent = `${Math.round(totalCost).toLocaleString('fa-IR')} تومان`;
+                
+                renderTable();
+                saveState();
+            }
+            
+            function getConsumptionTierName(consumption) {
+                if (consumption <= 0) return '-';
+                const sortedTiers = [...tiers].sort((a, b) => a.from - b.from);
+                for (let i = 0; i < sortedTiers.length; i++) {
+                    const tier = sortedTiers[i];
+                    if (consumption > tier.from && consumption <= tier.to) {
+                        return `پلکان ${i + 1}`;
+                    }
+                }
+                // Handles the last tier which goes to Infinity
+                if (consumption > sortedTiers[sortedTiers.length - 1].from) {
+                    return `پلکان ${sortedTiers.length}`;
+                }
+                return '-';
+            }
+
+            function calculateUnitCost(consumption) {
+                let cost = 0;
+                const sortedTiers = [...tiers].sort((a, b) => a.from - b.from);
+                let remainingConsumption = consumption;
+
+                for (const tier of sortedTiers) {
+                    if (remainingConsumption <= 0) break;
+                    
+                    if (consumption > tier.from) {
+                        const tierRange = tier.to === Infinity ? remainingConsumption : tier.to - tier.from;
+                        const consumptionInTier = Math.min(remainingConsumption, tierRange);
+                        if (consumptionInTier > 0) {
+                           cost += consumptionInTier * tier.rate;
+                           remainingConsumption -= consumptionInTier;
+                        }
+                    }
+                }
+                return cost;
+            }
+
+            function getConsumptionColor(ratio) {
+                if (ratio <= 0) return '#22c55e';
+                const r = Math.round(220 * ratio + (1 - ratio) * 34);
+                const g = Math.round(38 * ratio + (1 - ratio) * 197);
+                const b = Math.round(38 * ratio + (1 - ratio) * 94);
+                return `rgb(${r}, ${g}, ${b})`;
+            }
+
+            function attachEventListeners() {
+                mainTableBody.addEventListener('input', (e) => {
+                    if (e.target.tagName === 'INPUT' && e.target.type === 'number') {
+                        const period = periods.find(p => p.id == activePeriodId);
+                        if (!period) return;
+                        
+                        const unitName = e.target.dataset.name;
+                        const field = e.target.dataset.field;
+                        const unitReading = period.readings.find(r => r.name === unitName);
+
+                        if (unitReading) {
+                            unitReading[field] = parseFloat(e.target.value) || 0;
+                            calculateAll();
+                        }
+                    }
+                });
+                
+                document.getElementById('manage-periods-btn').addEventListener('click', openPeriodsModal);
+                document.getElementById('settings-btn').addEventListener('click', openSettingsModal);
+                document.getElementById('export-pdf-btn').addEventListener('click', exportToPDF);
+                document.getElementById('export-excel-btn').addEventListener('click', exportToExcel);
+            }
+
+            function exportToPDF() {
+                const period = periods.find(p => p.id == activePeriodId);
+                if (!period) return;
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                doc.addFileToVFS("Vazirmatn-Regular.ttf", vazirFontBase64);
+                doc.addFont("Vazirmatn-Regular.ttf", "Vazirmatn", "normal");
+                doc.setFont("Vazirmatn");
+
+                const head = [[ 'هزینه نهایی (تومان)', 'پله مصرف', 'مصرف (m³)', 'قرائت فعلی', 'قرائت قبلی', 'نام واحد' ]];
+                const body = period.readings.map(r => [
+                    Math.round(r.cost).toLocaleString('fa-IR'),
+                    r.tierName,
+                    r.consumption.toFixed(2),
+                    r.currentReading,
+                    r.prevReading,
+                    r.name
+                ]);
+
+                const title = `گزارش آب بها برای: ${period.name}`;
+                const dates = `از ${new Date(period.startDate).toLocaleDateString('fa-IR')} تا ${new Date(period.endDate).toLocaleDateString('fa-IR')}`;
+                doc.text(title, doc.internal.pageSize.getWidth() / 2, 15, { align: 'center' });
+                doc.setFontSize(10);
+                doc.text(dates, doc.internal.pageSize.getWidth() / 2, 22, { align: 'center' });
+
+                doc.autoTable({
+                    head: head, body: body, startY: 30,
+                    styles: { font: "Vazirmatn", halign: 'center', fontSize: 9 },
+                    headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
+                    columnStyles: { 5: { halign: 'right' } }
+                });
+                
+                doc.save(`گزارش-آب-بها-${period.name.replace(/[\s/]/g, '-')}.pdf`);
+            }
+            
+            function exportToExcel() {
+                 const period = periods.find(p => p.id == activePeriodId);
+                if (!period) return;
+
+                const worksheetData = period.readings.map(r => ({
+                    "نام واحد": r.name,
+                    "قرائت قبلی": r.prevReading,
+                    "قرائت فعلی": r.currentReading,
+                    "میزان مصرف": r.consumption,
+                    "پله مصرف": r.tierName,
+                    "هزینه نهایی": r.cost
+                }));
+                const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, period.name);
+                
+                XLSX.writeFile(workbook, `داده-های-آب-بها-${period.name.replace(/[\s/]/g, '-')}.xlsx`);
+            }
+
+            function openPeriodsModal() {
+                const periodsList = document.getElementById('periods-list');
+                periodsList.innerHTML = '';
+                if (periods.length === 0) {
+                    periodsList.innerHTML = '<p class="text-center text-gray-500">هیچ دوره‌ای ساخته نشده است.</p>';
+                } else {
+                    [...periods].reverse().forEach(period => {
+                        const periodEl = document.createElement('div');
+                        periodEl.className = `border-b p-3 flex justify-between items-center hover:bg-gray-50 ${period.id == activePeriodId ? 'bg-blue-100' : ''}`;
+                        periodEl.innerHTML = `
+                            <div>
+                                <p class="font-bold">${period.name}</p>
+                                <p class="text-sm text-gray-500">${new Date(period.startDate).toLocaleDateString('fa-IR')} - ${new Date(period.endDate).toLocaleDateString('fa-IR')}</p>
+                            </div>
+                            <div>
+                                <button class="bg-blue-500 text-white text-sm py-1 px-2 rounded" data-action="select" data-id="${period.id}">انتخاب</button>
+                                <button class="bg-red-500 text-white text-sm py-1 px-2 rounded" data-action="delete" data-id="${period.id}">حذف</button>
+                            </div>
+                        `;
+                        periodsList.appendChild(periodEl);
+                    });
+                }
+                periodsModal.classList.remove('hidden');
+                periodsModal.classList.add('flex');
+            }
+
+            document.getElementById('add-period-btn').addEventListener('click', () => {
+                const name = document.getElementById('new-period-name').value;
+                const startDate = document.getElementById('new-period-start-date').value;
+                const endDate = document.getElementById('new-period-end-date').value;
+                createNewPeriod(name, startDate, endDate);
+                document.getElementById('new-period-name').value = '';
+                document.getElementById('new-period-start-date').value = '';
+                document.getElementById('new-period-end-date').value = '';
+            });
+
+            document.getElementById('periods-list').addEventListener('click', (e) => {
+                const action = e.target.dataset.action;
+                const id = e.target.dataset.id;
+                if (!action || !id) return;
+
+                if (action === 'select') {
+                    setActivePeriod(id);
+                    periodsModal.classList.add('hidden');
+                    periodsModal.classList.remove('flex');
+                } else if (action === 'delete') {
+                    if (confirm(`آیا از حذف این دوره مطمئن هستید؟ این عمل قابل بازگشت نیست.`)) {
+                        periods = periods.filter(p => p.id != id);
+                        if (activePeriodId == id) {
+                            setActivePeriod(periods.length > 0 ? periods[periods.length - 1].id : null);
+                        }
+                        saveState();
+                        openPeriodsModal();
+                    }
+                }
+            });
+
+            document.getElementById('close-periods-btn').addEventListener('click', () => {
+                periodsModal.classList.add('hidden');
+                periodsModal.classList.remove('flex');
+            });
+
+            function openSettingsModal() {
+                const tiersContainer = document.getElementById('tiers-container');
+                tiersContainer.innerHTML = '';
+                tiers.forEach((tier, index) => {
+                    const tierEl = document.createElement('div');
+                    tierEl.className = 'grid grid-cols-4 gap-2 mb-2 items-center';
+                    tierEl.innerHTML = `
+                        <input type="number" placeholder="از (m³)" class="p-1 border rounded" value="${tier.from}" data-index="${index}" data-field="from">
+                        <input type="number" placeholder="تا (m³)" class="p-1 border rounded" value="${tier.to === Infinity ? '' : tier.to}" data-index="${index}" data-field="to">
+                        <input type="number" placeholder="نرخ (تومان)" class="p-1 border rounded" value="${tier.rate}" data-index="${index}" data-field="rate">
+                        <button class="bg-red-500 text-white rounded px-2 py-1" data-index="${index}" data-action="remove-tier">-</button>
+                    `;
+                    tiersContainer.appendChild(tierEl);
+                });
+                settingsModal.classList.remove('hidden');
+                settingsModal.classList.add('flex');
+            }
+
+            document.getElementById('add-tier-btn').addEventListener('click', () => {
+                const lastTier = tiers.length > 0 ? tiers[tiers.length - 1] : { to: 0 };
+                tiers.push({ from: lastTier.to, to: Infinity, rate: 0 });
+                openSettingsModal();
+            });
+
+            document.getElementById('tiers-container').addEventListener('click', (e) => {
+                if (e.target.dataset.action === 'remove-tier') {
+                    tiers.splice(e.target.dataset.index, 1);
+                    openSettingsModal();
+                }
+            });
+
+            document.getElementById('save-settings-btn').addEventListener('click', () => {
+                const newTiers = [];
+                document.querySelectorAll('#tiers-container > div').forEach(tierEl => {
+                    const from = parseFloat(tierEl.querySelector('[data-field="from"]').value) || 0;
+                    let to = parseFloat(tierEl.querySelector('[data-field="to"]').value);
+                    if (isNaN(to) || to === 0) to = Infinity;
+                    const rate = parseFloat(tierEl.querySelector('[data-field="rate"]').value) || 0;
+                    newTiers.push({ from, to, rate });
+                });
+                tiers = newTiers;
+                if (activePeriodId) calculateAll();
+                else saveState();
+                settingsModal.classList.add('hidden');
+                settingsModal.classList.remove('flex');
+            });
+
+            document.getElementById('cancel-settings-btn').addEventListener('click', () => {
+                settingsModal.classList.add('hidden');
+                settingsModal.classList.remove('flex');
+            });
+
+            initializeApp();
+        });
+    </script>
+</body>
+</html>
