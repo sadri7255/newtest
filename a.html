@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مرکز آموزش جامع و پیشرفته طراحی الگوریتم</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Vazirmatn Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- KaTeX for Math Formulas (Corrected Links) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" xintegrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" xintegrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" xintegrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"></script>
+
+    <style>
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            background-color: #f8fafc;
+            scroll-behavior: smooth;
+        }
+        .katex {
+            font-size: 1.1em !important;
+        }
+        .prose {
+            line-height: 1.85;
+        }
+        .feedback {
+            transition: all 0.3s ease-in-out;
+            min-height: 24px;
+            font-weight: 500;
+        }
+        .prose code {
+            font-family: 'Vazirmatn', monospace;
+            background-color: #e2e8f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #cbd5e1;
+            padding: 8px 12px;
+            text-align: center;
+        }
+        th {
+            background-color: #f1f5f9;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <!-- Header -->
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 class="text-xl md:text-2xl font-bold text-slate-700">🎓 مرکز آموزش پیشرفته طراحی الگوریتم</h1>
+            <nav class="hidden md:flex space-x-6 space-x-reverse">
+                <a href="#big-o" class="text-slate-600 hover:text-blue-600 transition">مرتبه اجرایی</a>
+                <a href="#function-growth" class="text-slate-600 hover:text-blue-600 transition">رشد توابع</a>
+                <a href="#recursion" class="text-slate-600 hover:text-blue-600 transition">روابط بازگشتی</a>
+                <a href="#shortest-path" class="text-slate-600 hover:text-blue-600 transition">کوتاه‌ترین مسیر</a>
+                <a href="#np-class" class="text-slate-600 hover:text-blue-600 transition">کلاسبندی NP</a>
+                <a href="#final-exam" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">آزمون نهایی</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-6 py-10">
+
+        <!-- Section 1: Big O -->
+        <section id="big-o" class="mb-16">
+            <h2 class="text-3xl font-bold mb-6 border-r-4 border-blue-600 pr-4">۱. مرتبه اجرایی: تحلیل عمیق پیچیدگی کد</h2>
+            <div class="bg-white p-8 rounded-xl shadow-lg space-y-8">
+                <article class="prose max-w-none">
+                    <p><strong>پیچیدگی زمانی</strong>، معیاری برای سنجش نرخ رشد زمان اجرای یک الگوریتم نسبت به افزایش اندازه ورودی ($n$) است. ما از نمادگذاری‌های مجانبی برای توصیف این رشد استفاده می‌کنیم.</p>
+                    <h4 class="font-semibold">نمادگذاری‌های اصلی:</h4>
+                    <ul class="list-disc list-inside space-y-2">
+                        <li><strong>$O(f(n))$ (Big O):</strong> یک <strong>کران بالا (Upper Bound)</strong> برای نرخ رشد تابع است. یعنی الگوریتم ما در بدترین حالت، سریع‌تر یا هم‌سرعت با $f(n)$ رشد می‌کند.</li>
+                        <li><strong>$\Omega(f(n))$ (Big Omega):</strong> یک <strong>کران پایین (Lower Bound)</strong> است. یعنی الگوریتم ما در بهترین حالت، کندتر یا هم‌سرعت با $f(n)$ رشد می‌کند.</li>
+                        <li><strong>$\Theta(f(n))$ (Big Theta):</strong> یک <strong>کران محکم (Tight Bound)</strong> است. یعنی نرخ رشد الگوریتم دقیقاً برابر با $f(n)$ است (هم کران بالا و هم کران پایین).</li>
+                    </ul>
+                    <p>در امتحانات، معمولاً منظور از "مرتبه اجرایی" همان $O$ یا $\Theta$ در <strong>بدترین حالت (Worst Case)</strong> است.</p>
+                </article>
+
+                <div class="bg-slate-50 p-6 rounded-lg border border-slate-200">
+                    <h4 class="font-semibold mb-4">مثال ۱: حلقه رادیکالی</h4>
+                    <pre class="bg-slate-900 text-white p-4 rounded-md text-left direction-ltr"><code>
+for (int i = 1; i * i <= n; i++) {
+  // O(1) operation
+}
+                    </code></pre>
+                    <p class="mt-4"><strong>تحلیل:</strong> حلقه تا زمانی ادامه می‌یابد که $i^2 \le n$ باشد، که معادل $i \le \sqrt{n}$ است. بنابراین، حلقه تقریباً $\sqrt{n}$ بار تکرار می‌شود و پیچیدگی $\Theta(\sqrt{n})$ است.</p>
+                </div>
+
+                <div class="bg-slate-50 p-6 rounded-lg border border-slate-200">
+                    <h4 class="font-semibold mb-4">مثال ۲: بهترین، متوسط و بدترین حالت (مرتب‌سازی سریع)</h4>
+                    <p>پیچیدگی الگوریتم مرتب‌سازی سریع (Quicksort) به انتخاب عنصر محوری (pivot) بستگی دارد:</p>
+                    <ul class="list-disc list-inside mt-2">
+                        <li><strong>بهترین حالت (Best Case):</strong> اگر pivot همیشه لیست را نصف کند، رابطه بازگشتی $T(n) = 2T(n/2) + \Theta(n)$ را داریم که نتیجه‌اش $\Theta(n \log n)$ است.</li>
+                        <li><strong>بدترین حالت (Worst Case):</strong> اگر pivot همیشه کوچکترین یا بزرگترین عنصر باشد (مثلاً در یک آرایه مرتب)، رابطه بازگشتی $T(n) = T(n-1) + \Theta(n)$ را داریم که نتیجه‌اش $\Theta(n^2)$ است.</li>
+                        <li><strong>حالت متوسط (Average Case):</strong> با انتخاب تصادفی pivot، به طور میانگین به پیچیدگی $\Theta(n \log n)$ می‌رسیم.</li>
+                    </ul>
+                </div>
+                
+                <div class="pt-6 border-t">
+                    <h4 class="text-xl font-bold mb-4">✏️ خودت را امتحان کن!</h4>
+                    <p class="mb-2">مرتبه اجرایی قطعه کد زیر چیست؟</p>
+                    <pre class="bg-slate-900 text-white p-4 rounded-md text-left direction-ltr mb-4"><code>
+for (int i = 0; i < n; i++) {
+  for (int j = 1; j < n; j = j * 2) {
+    // O(1) operation
+  }
+}
+                    </code></pre>
+                    <div id="big-o-quiz" class="flex flex-wrap gap-4">
+                        <button onclick="checkAnswer('big-o', 'O(n^2)')" class="bg-slate-200 px-4 py-2 rounded-lg hover:bg-slate-300">$\Theta(n^2)$</button>
+                        <button onclick="checkAnswer('big-o', 'O(n log n)')" class="bg-slate-200 px-4 py-2 rounded-lg hover:bg-slate-300">$\Theta(n \log n)$</button>
+                        <button onclick="checkAnswer('big-o', 'O(n)')" class="bg-slate-200 px-4 py-2 rounded-lg hover:bg-slate-300">$\Theta(n)$</button>
+                    </div>
+                    <p id="big-o-feedback" class="mt-4 font-semibold feedback"></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Function Growth -->
+        <section id="function-growth" class="mb-16">
+            <h2 class="text-3xl font-bold mb-6 border-r-4 border-blue-600 pr-4">۲. مرتب‌سازی توابع: درک عمیق نرخ رشد</h2>
+            <div class="bg-white p-8 rounded-xl shadow-lg space-y-6">
+                <article class="prose max-w-none">
+                    <p>برای مقایسه دقیق نرخ رشد دو تابع $f(n)$ و $g(n)$، می‌توانیم از حد زیر استفاده کنیم:</p>
+                    <div class="text-center bg-slate-50 p-4 rounded-lg">
+                        $$ L = \lim_{n \to \infty} \frac{f(n)}{g(n)} $$
+                    </div>
+                     <ul class="list-disc list-inside space-y-2 mt-4">
+                        <li>اگر $L=0$ باشد، $f(n)$ کندتر از $g(n)$ رشد می‌کند ($f(n) \in O(g(n))$).</li>
+                        <li>اگر $L=\infty$ باشد، $f(n)$ سریع‌تر از $g(n)$ رشد می‌کند ($f(n) \in \Omega(g(n))$).</li>
+                        <li>اگر $L=c$ (یک عدد ثابت بزرگتر از صفر) باشد، هر دو تابع هم‌رشد هستند ($f(n) \in \Theta(g(n))$).</li>
+                    </ul>
+                    <h4 class="font-semibold mt-4">جدول مقایسه رشد توابع</h4>
+                    <table>
+                        <thead><tr><th>$n$</th><th>$\log_2 n$</th><th>$n$</th><th>$n \log_2 n$</th><th>$n^2$</th><th>$2^n$</th></tr></thead>
+                        <tbody>
+                            <tr><td>10</td><td>~3.3</td><td>10</td><td>~33</td><td>100</td><td>1,024</td></tr>
+                            <tr><td>100</td><td>~6.6</td><td>100</td><td>~664</td><td>10,000</td><td>~1.26 x $10^{30}$</td></tr>
+                            <tr><td>1000</td><td>~10</td><td>1,000</td><td>~10,000</td><td>1,000,000</td><td>بسیار بزرگ!</td></tr>
+                        </tbody>
+                    </table>
+                </article>
+
+                <div class="pt-6 border-t">
+                    <h4 class="text-xl font-bold mb-4">✏️ خودت را امتحان کن!</h4>
+                    <p class="mb-2">توابع زیر را به ترتیب صعودی (از کندترین رشد) مرتب کنید:</p>
+                    <p class="mb-4">$f_1(n) = n\sqrt{n}, \quad f_2(n) = n^2 / \log n, \quad f_3(n) = 100n \log n$</p>
+                    <div id="growth-quiz" class="flex flex-wrap gap-4">
+                        <button onclick="checkAnswer('growth', 'f3,f1,f2')" class="bg-slate-200 px-4 py-2 rounded-lg hover:bg-slate-300">$f_3, f_1, f_2$</button>
+                        <button onclick="checkAnswer('growth', 'f1,f3,f2')" class="bg-slate-200 px-4 py-2 rounded-lg hover:bg-slate-300">$f_1, f_3, f_2$</button>
+                        <button onclick="checkAnswer('growth', 'f3,f2,f1')" class="bg-slate-200 px-4 py-2 rounded-lg hover:bg-slate-300">$f_3, f_2, f_1$</button>
+                    </div>
+                    <p id="growth-feedback" class="mt-4 font-semibold feedback"></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Recursion -->
+        <section id="recursion" class="mb-16">
+            <h2 class="text-3xl font-bold mb-6 border-r-4 border-blue-600 pr-4">۳. روابط بازگشتی: قضیه اصلی و روش درخت بازگشت</h2>
+            <div class="bg-white p-8 rounded-xl shadow-lg space-y-6">
+                <article class="prose max-w-none">
+                    <p>برای حل روابط بازگشتی، دو روش اصلی وجود دارد: <strong>قضیه اصلی</strong> و <strong>روش درخت بازگشت</strong>.</p>
+                    <h4 class="font-semibold">قضیه اصلی (Master Theorem)</h4>
+                    <p>این قضیه یک دستورالعمل سریع برای حل روابط به فرم $T(n) = aT(n/b) + f(n)$ است. (توضیحات سه حالت در نسخه قبل موجود است).</p>
+                    <h4 class="font-semibold mt-4">روش درخت بازگشت (Recursion Tree Method)</h4>
+                    <p>این روش بصری‌تر است و برای روابطی که با قضیه اصلی حل نمی‌شوند نیز کاربرد دارد. مراحل آن عبارتند از:</p>
+                    <ol class="list-decimal list-inside space-y-2">
+                        <li><strong>رسم درخت:</strong> درخت بازگشت را برای چند سطح رسم کنید. هر گره هزینه مربوط به یک فراخوانی تابع را نشان می‌دهد.</li>
+                        <li><strong>محاسبه هزینه هر سطح:</strong> هزینه کل گره‌های هر سطح از درخت را محاسبه کنید.</li>
+                        <li><strong>محاسبه مجموع هزینه‌ها:</strong> هزینه‌های تمام سطوح را با هم جمع بزنید تا هزینه کل به دست آید.</li>
+                    </ol>
+                </article>
+                
+                <div class="bg-slate-50 p-6 rounded-lg border border-slate-200">
+                    <h4 class="font-semibold mb-4">مثال: حل $T(n) = 2T(n/2) + n^2$ با روش درخت</h4>
+                    <ul class="list-disc list-inside space-y-2">
+                        <li><strong>سطح ۰ (ریشه):</strong> هزینه $n^2$ است.</li>
+                        <li><strong>سطح ۱:</strong> دو زیرمسئله با اندازه $n/2$ داریم. هزینه کل این سطح: $2 \times (n/2)^2 = 2 \times n^2/4 = n^2/2$.</li>
+                        <li><strong>سطح ۲:</strong> چهار زیرمسئله با اندازه $n/4$ داریم. هزینه کل این سطح: $4 \times (n/4)^2 = 4 \times n^2/16 = n^2/4$.</li>
+                        <li><strong>سطح $i$:</strong> هزینه $n^2 / 2^i$ است.</li>
+                    </ul>
+                    <p class="mt-4">ارتفاع درخت $\log_2 n$ است. مجموع کل هزینه‌ها یک سری هندسی است:</p>
+                    $$ T(n) = \sum_{i=0}^{\log n} \frac{n^2}{2^i} = n^2 \sum_{i=0}^{\log n} (\frac{1}{2})^i $$
+                    <p>مجموع این سری هندسی به $2$ میل می‌کند. پس $T(n) \approx 2n^2$ که نتیجه می‌دهد $T(n) = \Theta(n^2)$. این با حالت ۳ قضیه اصلی مطابقت دارد.</p>
+                </div>
+
+                <div class="pt-6 border-t">
+                    <h4 class="text-xl font-bold mb-4">✏️ خودت را امتحان کن!</h4>
+                    <p class="mb-2">پیچیدگی رابطه بازگشتی $T(n) = 9T(n/3) + n$ چیست؟</p>
+                    <div id="recursion-quiz" class="flex flex-wrap gap-4">
+                        <button onclick="checkAnswer('recursion', 'Theta(n^2)')" class="bg-slate-200 px-4 py-2 rounded-lg hover:bg-slate-300">$\Theta(n^2)$</button>
+                        <button onclick="checkAnswer('recursion', 'Theta(n log n)')" class="bg-slate-200 px-4 py-2 rounded-lg hover:bg-slate-300">$\Theta(n \log n)$</button>
+                        <button onclick="checkAnswer('recursion', 'Theta(n)')" class="bg-slate-200 px-4 py-2 rounded-lg hover:bg-slate-300">$\Theta(n)$</button>
+                    </div>
+                    <p id="recursion-feedback" class="mt-4 font-semibold feedback"></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Shortest Path -->
+        <section id="shortest-path" class="mb-16">
+            <h2 class="text-3xl font-bold mb-6 border-r-4 border-blue-600 pr-4">۴. الگوریتم‌های کوتاه‌ترین مسیر: اجرای گام‌به‌گام</h2>
+            <div class="bg-white p-8 rounded-xl shadow-lg space-y-6">
+                <p>در این بخش، اجرای دو الگوریتم اصلی را روی یک گراف نمونه دنبال می‌کنیم.</p>
+                <!-- Graph image can be added here -->
+                <h4 class="font-semibold mt-4">مثال: اجرای گام‌به‌گام دایکسترا</h4>
+                <p>فرض کنید می‌خواهیم کوتاه‌ترین مسیر از گره A را پیدا کنیم. جدول زیر مراحل را نشان می‌دهد:</p>
+                <table>
+                    <thead><tr><th>مرحله</th><th>گره انتخابی</th><th>مجموعه ملاقات‌نشده</th><th>فاصله تا A, B, C, D</th></tr></thead>
+                    <tbody>
+                        <tr><td>اولیه</td><td>-</td><td>{A,B,C,D}</td><td>[0, $\infty$, $\infty$, $\infty$]</td></tr>
+                        <tr><td>۱</td><td>A</td><td>{B,C,D}</td><td>[0, 10, 3, $\infty$]</td></tr>
+                        <tr><td>۲</td><td>C</td><td>{B,D}</td><td>[0, 7, 3, 11]</td></tr>
+                        <tr><td>۳</td><td>B</td><td>{D}</td><td>[0, 7, 3, 9]</td></tr>
+                        <tr><td>۴</td><td>D</td><td>{}</td><td>[0, 7, 3, 9] (نهایی)</td></tr>
+                    </tbody>
+                </table>
+                <p class="mt-2"><strong>نتیجه نهایی دایکسترا:</strong> کوتاه‌ترین مسیرها از A به B=7, C=3, D=9 است.</p>
+
+                 <div class="pt-6 border-t">
+                    <h4 class="text-xl font-bold mb-4">✏️ خودت را امتحان کن!</h4>
+                    <p class="mb-2">کدام الگوریتم می‌تواند وجود "دور منفی" در گراف را تشخیص دهد؟</p>
+                    <div id="path-quiz" class="flex flex-wrap gap-4">
+                        <button onclick="checkAnswer('path', 'dijkstra')" class="bg-slate-200 px-4 py-2 rounded-lg hover:bg-slate-300">دایکسترا</button>
+                        <button onclick="checkAnswer('path', 'bellman-ford')" class="bg-slate-200 px-4 py-2 rounded-lg hover:bg-slate-300">بلمن-فورد</button>
+                        <button onclick="checkAnswer('path', 'both')" class="bg-slate-200 px-4 py-2 rounded-lg hover:bg-slate-300">هر دو</button>
+                    </div>
+                    <p id="path-feedback" class="mt-4 font-semibold feedback"></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 5: NP Class -->
+        <section id="np-class" class="mb-16">
+            <h2 class="text-3xl font-bold mb-6 border-r-4 border-blue-600 pr-4">۵. کلاسبندی NP: مسائل سخت و مفهوم کاهش</h2>
+            <div class="bg-white p-8 rounded-xl shadow-lg space-y-6">
+                <article class="prose max-w-none">
+                    <p>مفهوم کلیدی برای اثبات اینکه یک مسئله NP-Complete است، <strong>کاهش چندجمله‌ای (Polynomial-time Reduction)</strong> است.</p>
+                    <p>می‌گوییم مسئله A به مسئله B کاهش می‌یابد (به صورت $A \le_p B$) اگر بتوانیم هر نمونه از مسئله A را در زمان چندجمله‌ای به یک نمونه از مسئله B تبدیل کنیم، به طوری که جواب نمونه B، جواب نمونه A را نیز به ما بدهد. این یعنی "مسئله B حداقل به اندازه مسئله A سخت است".</p>
+                    <h4 class="font-semibold mt-4">چند مسئله معروف NP-Complete:</h4>
+                    <ul class="list-disc list-inside space-y-2">
+                        <li><strong>SAT (Satisfiability):</strong> آیا یک فرمول بولی داده شده، یک انتساب متغیر "درست" دارد؟</li>
+                        <li><strong>TSP (Traveling Salesperson Problem):</strong> آیا مسیری با طول کمتر از $k$ برای بازدید از همه شهرها وجود دارد؟</li>
+                        <li><strong>Knapsack Problem:</strong> آیا می‌توان زیرمجموعه‌ای از آیتم‌ها را با ارزش حداقل $v$ انتخاب کرد به طوری که وزنشان از $W$ بیشتر نشود؟</li>
+                        <li><strong>Clique:</strong> آیا یک گراف دارای یک کلیک (زیرگراف کامل) با اندازه حداقل $k$ است؟</li>
+                    </ul>
+                </article>
+                 <div class="pt-6 border-t">
+                    <h4 class="text-xl font-bold mb-4">✏️ خودت را امتحان کن!</h4>
+                    <p class="mb-2">مسئله "فروشنده دوره‌گرد" (پیدا کردن کوتاه‌ترین تور برای بازدید از همه شهرها) در کدام کلاس قرار دارد؟</p>
+                    <div id="np-quiz" class="flex flex-wrap gap-4">
+                        <button onclick="checkAnswer('np', 'P')" class="bg-slate-200 px-4 py-2 rounded-lg hover:bg-slate-300">P</button>
+                        <button onclick="checkAnswer('np', 'NP-Complete')" class="bg-slate-200 px-4 py-2 rounded-lg hover:bg-slate-300">NP-Complete</button>
+                    </div>
+                    <p id="np-feedback" class="mt-4 font-semibold feedback"></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 6: Final Exam -->
+        <section id="final-exam" class="mb-12">
+            <h2 class="text-3xl font-bold mb-6 border-r-4 border-green-600 pr-4">۶. آزمون نهایی شبیه‌ساز امتحان</h2>
+            <div class="bg-white p-8 rounded-xl shadow-lg space-y-8">
+                <div class="space-y-6">
+                    <!-- Questions -->
+                    <div><p class="font-semibold mb-2">۱. پیچیدگی زمانی رابطه $T(n) = T(n-1) + n$ چیست؟</p>
+                        <select id="q1" class="w-full p-2 border rounded-lg bg-slate-50"><option value="">انتخاب کنید...</option><option value="n^2">$\Theta(n^2)$</option><option value="n log n">$\Theta(n \log n)$</option><option value="2^n">$\Theta(2^n)$</option></select></div>
+                    <div><p class="font-semibold mb-2">۲. کدام تابع سریع‌ترین رشد را دارد؟</p>
+                        <select id="q2" class="w-full p-2 border rounded-lg bg-slate-50"><option value="">انتخاب کنید...</option><option value="n^log n">$n^{\log n}$</option><option value="2^n">$2^n$</option><option value="n!">$n!$</option></select></div>
+                    <div><p class="font-semibold mb-2">۳. رابطه $T(n) = T(n/2) + 1$ بیانگر پیچیدگی کدام الگوریتم است؟</p>
+                        <select id="q3" class="w-full p-2 border rounded-lg bg-slate-50"><option value="">انتخاب کنید...</option><option value="linear">جستجوی خطی</option><option value="binary">جستجوی دودویی</option><option value="merge">مرتب‌سازی ادغامی</option></select></div>
+                    <div><p class="font-semibold mb-2">۴. تفاوت اصلی استراتژی دایکسترا و بلمن-فورد چیست؟</p>
+                        <select id="q4" class="w-full p-2 border rounded-lg bg-slate-50"><option value="">انتخاب کنید...</option><option value="greedy-dp">حریصانه در مقابل برنامه‌نویسی پویا</option><option value="iterative-recursive">تکراری در مقابل بازگشتی</option><option value="positive-negative">فقط یال مثبت در مقابل هر دو</option></select></div>
+                    <div><p class="font-semibold mb-2">۵. اگر یک مسئله NP-Hard باشد، آیا حتما NP-Complete هم هست؟</p>
+                        <select id="q5" class="w-full p-2 border rounded-lg bg-slate-50"><option value="">انتخاب کنید...</option><option value="yes">بله، همیشه</option><option value="no">خیر، لزوماً اینطور نیست</option></select></div>
+                </div>
+                <button onclick="calculateScore()" class="w-full bg-green-600 text-white py-3 rounded-lg text-lg font-bold hover:bg-green-700 transition">مشاهده نتیجه آزمون</button>
+                <div id="final-result" class="text-center text-2xl font-bold mt-6"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false}
+                ],
+                throwOnError : false
+            });
+        });
+
+        const correctAnswers = {
+            'big-o': 'O(n log n)',
+            'growth': 'f3,f1,f2',
+            'recursion': 'Theta(n^2)',
+            'path': 'bellman-ford',
+            'np': 'NP-Complete',
+            'q1': 'n^2',
+            'q2': 'n!',
+            'q3': 'binary',
+            'q4': 'greedy-dp',
+            'q5': 'no'
+        };
+
+        function checkAnswer(quizId, selectedAnswer) {
+            const feedbackEl = document.getElementById(`${quizId}-feedback`);
+            const quizContainer = document.getElementById(`${quizId}-quiz`);
+            const buttons = quizContainer.getElementsByTagName('button');
+            
+            for (let button of buttons) {
+                button.disabled = true;
+                button.classList.remove('bg-slate-200', 'hover:bg-slate-300');
+                button.classList.add('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
+            }
+
+            if (selectedAnswer === correctAnswers[quizId]) {
+                feedbackEl.textContent = 'آفرین! پاسخ صحیح است.';
+                feedbackEl.className = 'mt-4 font-semibold feedback text-green-600';
+            } else {
+                let correctText = correctAnswers[quizId];
+                if (quizId === 'growth') {
+                    correctText = 'f3, f1, f2 (چون n log n < n^1.5 < n^2/log n)';
+                }
+                feedbackEl.textContent = `پاسخ اشتباه بود. جواب صحیح: ${correctText}`;
+                feedbackEl.className = 'mt-4 font-semibold feedback text-red-600';
+            }
+        }
+
+        function calculateScore() {
+            let score = 0;
+            const totalQuestions = 5;
+            const answers = {
+                q1: document.getElementById('q1').value,
+                q2: document.getElementById('q2').value,
+                q3: document.getElementById('q3').value,
+                q4: document.getElementById('q4').value,
+                q5: document.getElementById('q5').value
+            };
+
+            for(let i = 1; i <= totalQuestions; i++) {
+                if (answers[`q${i}`] === correctAnswers[`q${i}`]) score++;
+            }
+
+            const resultEl = document.getElementById('final-result');
+            const percentage = (score / totalQuestions) * 100;
+            
+            resultEl.innerHTML = `نتیجه شما: <span class="text-blue-600">${score} از ${totalQuestions} (${Math.round(percentage)}%)</span>`;
+
+            if (percentage >= 80) {
+                 resultEl.innerHTML += '<p class="text-lg text-green-600 mt-2">عالیه! برای امتحان کاملاً آماده‌ای.</p>';
+            } else if (percentage >= 50) {
+                 resultEl.innerHTML += '<p class="text-lg text-orange-500 mt-2">خوبه، اما بهتره یک بار دیگه مطالب رو با دقت مرور کنی.</p>';
+            } else {
+                 resultEl.innerHTML += '<p class="text-lg text-red-600 mt-2">نیاز به تلاش بیشتری داری. مطالب را از ابتدا مرور کن.</p>';
+            }
+        }
+    </script>
+
+</body>
+</html>
